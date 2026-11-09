@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<!--
+    GAZEBO ADDITIONAL DESCRIPTION FOR THE DIFFERENTIAL DRIVE ROBOT
+    This file describes the Gazebo-specific properties for the links and
+    the plugins that control the robot's behavior in the simulation.
+-->
+<robot>
+    <!--
+        This section defines the physical properties of the links in the Gazebo simulation.
+        This includes friction coefficients and material colors.
+    -->
+    <gazebo reference="body_link">
+        <mu1>0.2</mu1>
+        <mu2>0.2</mu2>
+        <material>Gazebo/Red</material>
+    </gazebo>
+
+    <gazebo reference="wheel1_link">
+        <mu1>0.2</mu1>
+        <mu2>0.2</mu2>
+        <material>Gazebo/Yellow</material>
+    </gazebo>
+
+    <gazebo reference="wheel2_link">
+        <mu1>0.2</mu1>
+        <mu2>0.2</mu2>
+        <material>Gazebo/Yellow</material>
+    </gazebo>
+
+    <gazebo reference="caster_link">
+        <mu1>0.000002</mu1>
+        <mu2>0.000002</mu2>
+        <material>Gazebo/Blue</material>
+    </gazebo>
+
+    <!--
+        This is the main plugin section for Gazebo. It contains the controllers
+        that link the robot model to the ROS2 topics using ros2_control.
+    -->
+    <gazebo>
+        <!--
+            The gz_ros2_control plugin integrates Gazebo with ros2_control framework.
+            This replaces the old DiffDrive plugin and provides more flexibility.
+        -->
+        <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+            <parameters>$(find mobile_robot_cpp)/config/mobile_robot_controllers.yaml</parameters>
+            <ros>
+                <namespace></namespace>
+                <remapping>/robot_description:=/robot_description</remapping>
+            </ros>
+        </plugin>
+    </gazebo>
+
+<!-- Lidar sensor -->
+<gazebo>
+    <plugin
+        filename="gz-sim-sensors-system"
+        name="gz::sim::systems::Sensors">
+        <render_engine>ogre2</render_engine>
+    </plugin>
+</gazebo>
+<gazebo reference="lidar_link">
+    <sensor name="gpu_lidar" type="gpu_lidar">
+        <pose relative_to="lidar_link">0 0 0 0 0 0</pose>
+        <topic>scan</topic>
+        <update_rate>2</update_rate>
+        <lidar>
+            <scan>
+                <horizontal>
+                    <samples>720</samples>
+                    <resolution>1</resolution>
+                    <min_angle>-3.14</min_angle>
+                    <max_angle>3.14</max_angle>
+                </horizontal>
+            </scan>
+            <range>
+                <min>0.01</min>
+                <max>12.0</max>
+                <resolution>0.005</resolution>
+            </range>
+            <noise>
+                <type>gaussian</type>
+                <mean>0.0</mean>
+                <stddev>0.001</stddev>
+            </noise>
+        </lidar>
+        <always_on>1</always_on>
+        <visualize>1</visualize>
+    </sensor>
+</gazebo>
+</robot>

@@ -1,0 +1,55 @@
+# Simple controller configuration without using advanced features
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+    
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    
+    diff_drive_controller:
+      type: diff_drive_controller/DiffDriveController
+
+# Joint State Broadcaster - publishes joint states  
+joint_state_broadcaster:
+  ros__parameters: {}
+
+# Differential Drive Controller
+diff_drive_controller:
+  ros__parameters:
+    # Wheel joint names (matching URDF)
+    left_wheel_names: ["wheel2_joint"]
+    right_wheel_names: ["wheel1_joint"]
+    
+    # Robot dimensions (from XACRO file)
+    wheel_separation: 0.8  # 2 * s4 where s4 = c/2 + d/2 = 0.6/2 + 0.1/2 = 0.4
+    wheel_radius: 0.15     # r = 0.15
+    
+    # Odometry settings
+    odom_frame_id: odom
+    base_frame_id: base_footprint
+    pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    
+    # Basic settings
+    open_loop: false
+    enable_odom_tf: true
+    cmd_vel_timeout: 5.0
+    publish_limited_velocity: true
+    velocity_rolling_window_size: 10
+    
+    # Limits (simple configuration)
+    linear.x.has_velocity_limits: true
+    linear.x.max_velocity: 1.0
+    linear.x.min_velocity: -1.0
+    linear.x.has_acceleration_limits: true  
+    linear.x.max_acceleration: 1.0
+    linear.x.min_acceleration: -1.0
+    linear.x.has_jerk_limits: false
+    
+    angular.z.has_velocity_limits: true
+    angular.z.max_velocity: 2.0
+    angular.z.min_velocity: -2.0
+    angular.z.has_acceleration_limits: true
+    angular.z.max_acceleration: 2.0
+    angular.z.min_acceleration: -2.0
+    angular.z.has_jerk_limits: false

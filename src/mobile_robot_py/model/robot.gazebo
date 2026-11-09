@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<!--
+    GAZEBO ADDITIONAL DESCRIPTION FOR THE DIFFERENTIAL DRIVE ROBOT
+    This file describes the Gazebo-specific properties for the links and
+    the plugins that control the robot's behavior in the simulation.
+-->
+<robot>
+    <!--
+        This section defines the physical properties of the links in the Gazebo simulation.
+        This includes friction coefficients and material colors.
+    -->
+    <gazebo reference="body_link">
+        <mu1>0.2</mu1>
+        <mu2>0.2</mu2>
+        <material>Gazebo/Red</material>
+    </gazebo>
+
+    <gazebo reference="wheel1_link">
+        <mu1>0.2</mu1>
+        <mu2>0.2</mu2>
+        <material>Gazebo/Yellow</material>
+    </gazebo>
+
+    <gazebo reference="wheel2_link">
+        <mu1>0.2</mu1>
+        <mu2>0.2</mu2>
+        <material>Gazebo/Yellow</material>
+    </gazebo>
+
+    <gazebo reference="caster_link">
+        <mu1>0.000002</mu1>
+        <mu2>0.000002</mu2>
+        <material>Gazebo/Blue</material>
+    </gazebo>
+
+    <!--
+        This is the main plugin section for Gazebo. It contains the controllers
+        that link the robot model to the ROS2 topics.
+    -->
+    <gazebo>
+        <!--
+            The Gazebo differential drive plugin. It subscribes to a command velocity topic
+            and publishes odometry information. It controls the motion of the wheels based on
+            incoming ROS2 messages.
+        -->
+        <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+            <!-- Wheel joints -->
+            <right_joint>wheel1_joint</right_joint>
+            <left_joint>wheel2_joint</left_joint>
+
+            <!-- Kinematics -->
+            <wheel_separation>${2 * s4}</wheel_separation>
+            <wheel_diameter>${2 * r}</wheel_diameter>
+
+            <!-- Limits -->
+            <max_linear_acceleration>10</max_linear_acceleration>
+
+            <!-- ROS2 topic and frame configurations -->
+            <topic>cmd_vel</topic>
+            <tf_topic>/tf</tf_topic>
+            <odom_topic>odom</odom_topic>
+            <frame_id>odom</frame_id>
+            <child_frame_id>base_footprint</child_frame_id>
+            <odom_publisher_frequency>30</odom_publisher_frequency>
+        </plugin>
+
+        <!--
+            The joint state publisher plugin. This plugin publishes the joint states of the specified
+            joints to a ROS2 topic, which is used by tools like RViz for visualization.
+        -->
+        <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+            <topic>joint_states</topic>
+            <joint_name>wheel1_joint</joint_name>
+            <joint_name>wheel2_joint</joint_name>
+        </plugin>
+    </gazebo>
+
+<!-- Lidar sensor -->
+<gazebo>
+    <plugin
+        filename="gz-sim-sensors-system"
+        name="gz::sim::systems::Sensors">
+        <render_engine>ogre2</render_engine>
+    </plugin>
+</gazebo>
+<gazebo reference="lidar_link">
+    <sensor name="gpu_lidar" type="gpu_lidar">
+        <pose relative_to="lidar_link">0 0 0 0 0 0</pose>
+        <topic>scan</topic>
+        <update_rate>2</update_rate>
+        <lidar>
+            <scan>
+                <horizontal>
+                    <samples>720</samples>
+                    <resolution>1</resolution>
+                    <min_angle>-3.14</min_angle>
+                    <max_angle>3.14</max_angle>
+                </horizontal>
+            </scan>
+            <range>
+                <min>0.01</min>
+                <max>12.0</max>
+                <resolution>0.005</resolution>
+            </range>
+            <noise>
+                <type>gaussian</type>
+                <mean>0.0</mean>
+                <stddev>0.001</stddev>
+            </noise>
+        </lidar>
+        <always_on>1</always_on>
+        <visualize>1</visualize>
+    </sensor>
+</gazebo>
+</robot>

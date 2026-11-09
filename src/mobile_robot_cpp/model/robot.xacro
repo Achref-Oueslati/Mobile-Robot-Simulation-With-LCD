@@ -1,0 +1,275 @@
+<?xml version="1.0"?>
+<!--
+    This is the URDF (Unified Robot Description Format) file for the differential drive robot.
+    It uses XACRO (XML Macros) for creating a more readable and reusable file.
+-->
+
+<!-- Main robot tag with the xacro namespace -->
+<robot name="differential_drive_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- ################################################################## -->
+    <!--                  GEOMETRY AND CONSTANTS                          -->
+    <!-- ################################################################## -->
+
+    <!-- Pi constant -->
+    <xacro:property name="pi_const" value="3.14159265"/>
+
+    <!-- Body dimensions (in meters) -->
+    <xacro:property name="a" value="1" />    <!-- Length -->
+    <xacro:property name="b" value="0.3" />  <!-- Height -->
+    <xacro:property name="c" value="0.6"/>   <!-- Width -->
+
+    <!-- Wheel and caster dimensions (in meters) -->
+    <xacro:property name="r" value="0.15"/>  <!-- Wheel and caster radius -->
+    <xacro:property name="d" value="0.1"/>   <!-- Wheel width -->
+
+    <!-- Offsets for links and joints -->
+    <xacro:property name="s1" value="${b/2 + r}"/>        <!-- Vertical offset for body link's origin -->
+    <xacro:property name="s2" value="${2 * r}"/>          <!-- Lateral offset for wheel joints from center -->
+    <xacro:property name="s3" value="${2 * r}"/>          <!-- Longitudinal offset for caster wheel -->
+    <xacro:property name="s4" value="${c/2 + d/2}"/>      <!-- Lateral offset for wheel joints from center -->
+
+    <!-- ################################################################## -->
+    <!--                  MASS AND INERTIA                                -->
+    <!-- ################################################################## -->
+
+    <!-- Material densities (in kg/m^3) -->
+    <xacro:property name="d1" value="2710.0"/> <!-- Body material density -->
+    <xacro:property name="d2" value="2710.0"/> <!-- Wheel material density -->
+    <xacro:property name="d3" value="2710.0"/> <!-- Caster material density -->
+
+    <!-- Mass calculations (in kg) -->
+    <xacro:property name="m1" value="${d1 * a * b * c}"/>           <!-- Body mass (volume * density) -->
+    <xacro:property name="m2" value="${d2 * pi_const * r * r * d}"/>  <!-- Wheel mass (cylinder volume * density) -->
+    <xacro:property name="m3" value="${d3 * (4.0/3.0) * pi_const * r * r * r}"/> <!-- Caster mass (sphere volume * density) -->
+
+    <!-- Moments of inertia of the robot body -->
+    <xacro:property name="Ix_body" value="${(1/12) * m1 * (b*b + c*c) }" />
+    <xacro:property name="Iy_body" value="${(1/12) * m1 * (a*a + b*b) }" />
+    <xacro:property name="Iz_body" value="${(1/12) * m1 * (a*a + c*c) }" />
+
+    <!-- Moments of inertia of the wheel -->
+    <xacro:property name="Iz_wheel" value="${0.5 * m2 * r*r}" />
+    <xacro:property name="I_wheel" value="${(1.0/12.0) * m2 * (3.0 * r*r + d*d)}" />
+
+    <!-- Moments of inertia of the caster sphere -->
+    <xacro:property name="I_caster" value="${(2.0/5.0) * m3 * r*r}" />
+
+
+    <!-- ################################################################## -->
+    <!--                        MACROS FOR INERTIAL SECTIONS              -->
+    <!-- ################################################################## -->
+
+    <!-- Macro to define the complete inertial section of the robot body -->
+    <xacro:macro name="inertia_body">
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 0 ${s1}"/>
+            <mass value="${m1}"/>
+            <inertia ixx="${Ix_body}" ixy="0.0" ixz="0.0" iyy="${Iy_body}" iyz="0.0" izz="${Iz_body}" />
+        </inertial>
+    </xacro:macro>
+
+    <!-- Macro to define the complete inertial section of the wheel -->
+    <xacro:macro name="inertia_wheel">
+        <inertial>
+            <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+            <mass value="${m2}"/>
+            <inertia ixx="${I_wheel}" ixy="0.0" ixz="0.0" iyy="${I_wheel}" iyz="0.0" izz="${Iz_wheel}" />
+        </inertial>
+    </xacro:macro>
+
+    <!-- Macro to define the complete inertial section of the caster -->
+    <xacro:macro name="inertia_caster">
+        <inertial>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <mass value="${m3}"/>
+            <inertia ixx="${I_caster}" ixy="0.0" ixz="0.0" iyy="${I_caster}" iyz="0.0" izz="${I_caster}" />
+        </inertial>
+    </xacro:macro>
+
+
+    <!-- ################################################################## -->
+    <!--                     ROS2_CONTROL CONFIGURATION                   -->
+    <!-- ################################################################## -->
+    
+    <!-- ros2_control hardware interface -->
+    <ros2_control name="GazeboSimSystem" type="system">
+        <hardware>
+            <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </hardware>
+        
+        <!-- Right wheel (wheel1_joint) -->
+        <joint name="wheel1_joint">
+            <command_interface name="velocity">
+                <param name="min">-10</param>
+                <param name="max">10</param>
+            </command_interface>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+        </joint>
+        
+        <!-- Left wheel (wheel2_joint) -->
+        <joint name="wheel2_joint">
+            <command_interface name="velocity">
+                <param name="min">-10</param>
+                <param name="max">10</param>
+            </command_interface>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+        </joint>
+    </ros2_control>
+
+    <!-- ################################################################## -->
+    <!--                     INCLUDE ADDITIONAL FILES                     -->
+    <!-- ################################################################## -->
+
+    <!-- This line includes the file that defines extra Gazebo options and the motion control driver -->
+    <xacro:include filename="$(find mobile_robot_py)/model/robot.gazebo" />
+
+
+    <!-- ################################################################## -->
+    <!--               DEFINE LINKS AND JOINTS                            -->
+    <!-- ################################################################## -->
+
+    <!-- START: Fictitious link of the robot. This is the root link. -->
+    <!-- It is a link with no geometry or inertia, often needed for proper visualization in Gazebo -->
+    <link name="base_footprint"> </link>
+
+    <!-- Joint that connects the base_footprint to the body_link -->
+    <joint name="body_link_joint" type="fixed">
+        <parent link="base_footprint"/>
+        <child link="body_link"/>
+    </joint>
+    <!-- END: Fictitious link -->
+
+
+    <!-- START: Body link of the robot -->
+    <link name="body_link">
+        <visual>
+            <geometry>
+                <box size="${a} ${c} ${b}" />
+            </geometry>
+            <!-- Displacement of the body's geometric center relative to the link's origin -->
+            <origin rpy="0 0 0" xyz="0 0 ${s1}"/>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="${a} ${c} ${b}" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 ${s1}"/>
+        </collision>
+        <!-- The inertia is defined by the macro we created earlier -->
+        <xacro:inertia_body />
+    </link>
+    <!-- END: Body link -->
+
+
+    <!-- START: Back right wheel of the robot and the joint -->
+    <joint name="wheel1_joint" type="continuous" >
+        <parent link="body_link" />
+        <child link="wheel1_link" />
+        <origin xyz="${-s2} ${-s4} ${r}" rpy="0 0 0" />
+        <axis xyz="0 1 0"/>
+        <limit effort="50000" velocity="10"/>
+        <dynamics damping="1.0" friction="1.0"/>
+    </joint>
+
+    <link name="wheel1_link">
+        <visual>
+            <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+            <geometry>
+                <cylinder length="${d}" radius="${r}"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+            <geometry>
+                <cylinder length="${d}" radius="${r}"/>
+            </geometry>
+        </collision>
+        <xacro:inertia_wheel />
+    </link>
+    <!-- END: Back right wheel -->
+
+
+    <!-- START: Back left wheel of the robot and the joint -->
+    <joint name="wheel2_joint" type="continuous" >
+        <parent link="body_link" />
+        <child link="wheel2_link" />
+        <origin xyz="${-s2} ${s4} ${r}" rpy="0 0 0" />
+        <axis xyz="0 1 0"/>
+        <limit effort="50000" velocity="10"/>
+        <dynamics damping="1.0" friction="1.0"/>
+    </joint>
+
+    <link name="wheel2_link">
+        <visual>
+            <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+            <geometry>
+                <cylinder length="${d}" radius="${r}"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+            <geometry>
+                <cylinder length="${d}" radius="${r}"/>
+            </geometry>
+        </collision>
+        <xacro:inertia_wheel />
+    </link>
+    <!-- END: Back left wheel -->
+
+
+    <!-- START: Caster wheel -->
+    <joint name="caster_joint" type="fixed">
+        <parent link="body_link"/>
+        <child link="caster_link"/>
+        <origin xyz="${s3} 0 ${r}" rpy="0 0 0"/>
+    </joint>
+
+    <link name="caster_link">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <sphere radius="${r}" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <geometry>
+                <sphere radius="${r}" />
+            </geometry>
+        </collision>
+        <xacro:inertia_caster />
+    </link>
+    <!-- END: Caster wheel -->
+
+    <!-- START: LIDAR -->
+
+    <joint name="lidar_joint" type="fixed">
+        <origin xyz="0.0 0 ${b+r}" rpy="0 0 0"/>
+        <parent link="body_link"/>
+        <child link="lidar_link"/>
+    </joint>
+    <link name="lidar_link">
+        <visual>
+            <origin xyz="0 0 0.05" rpy="0 0 0"/>
+            <geometry>
+                <cylinder length="0.1" radius="0.1"/>
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0.05" rpy="0 0 0"/>
+            <geometry>
+                <cylinder length="0.1" radius="0.1"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.01"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <inertia ixx="0.0001" ixy="0" ixz="0"
+                    iyy="0.0001" iyz="0" izz="0.0001"/>
+        </inertial>
+    </link>
+    <!-- END: LIDAR -->
+</robot>
